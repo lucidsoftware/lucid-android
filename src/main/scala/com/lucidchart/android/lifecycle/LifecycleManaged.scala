@@ -42,8 +42,6 @@ class LifecycleMacro(val c: Context) {
         unchanged
     }
 
-    println(results)
-
     c.Expr[Any](Block(results, Literal(Constant(()))))
   }
 
@@ -153,9 +151,13 @@ class LifecycleMacro(val c: Context) {
       tq"com.lucidchart.android.logging.DefaultLogging"
     }
 
+    val unwrappedType = returnType match {
+      case tq"$outer[..$inner]" => inner.head
+    }
+
     val expanded =
       List(
-        q"$varMods var $syntheticName: $returnType = new $lifecyclePackage.EmptyLifecycleValue($lifecycleInstance, ${params.debug}) with $loggerTrait",
+        q"$varMods var $syntheticName: $returnType = new $lifecyclePackage.EmptyLifecycleValue[$unwrappedType]($lifecycleInstance, ${params.debug}) with $loggerTrait",
         q"$defMods def ${TermName(name)}: $returnType = $syntheticName"
       )
 
@@ -196,22 +198,33 @@ class LifecycleMacro(val c: Context) {
       case member => member
     }
 
+    case class LifecycleMetadata(params: List[Tree], returnType: TypeName)
+
+    def generateDefault(lifecycle: Lifecycles.Value): Option[Tree] = {
+      val lifecycleActions = actions.filter(_.lifecycle === lifecycle)
+      lifecycleActions.nonEmpty.option {
+        val LifecycleMetadata(params, returnType) = lifecycle match {
+          case Lifecycles.OnCreate | Lifecycles.OnActivityCreated | Lifecycles.OnViewStateRestored =>
+            LifecycleMetadata(List(q"state: android.os.Bundle"), TypeName("Unit"))
+          case Lifecycles.OnCreateOptionsMenu =>
+            LifecycleMetadata(List(q"menu: android.view.Menu"), TypeName("Boolean"))
+          case Lifecycles.OnStart | Lifecycles.OnResume =>
+            LifecycleMetadata(Nil, TypeName("Unit"))
+          case Lifecycles.OnAttach =>
+            LifecycleMetadata(List(q"context: android.content.Context"), TypeName("Unit"))
+        }
+
+        val term = TermName(lifecycle.toString)
+        val passedParams = params.map {
+          case q"$name: $tpt" => name
+        }
+        q"override def $term(..$params): $returnType = { ..$lifecycleActions; super.$term(..$passedParams) }"
+      }
+    }
+
     val defaultLifecycles: List[Tree] = Lifecycles.values
       .filterNot(lc => processedLifecycles.contains(lc.toString))
-      .flatMap {
-        case Lifecycles.OnCreate =>
-          val lifecycleActions = actions.filter(_.lifecycle === Lifecycles.OnCreate)
-          lifecycleActions.nonEmpty.option {
-            q"override def onCreate(state: android.os.Bundle): Unit = { ..$lifecycleActions; super.onCreate(state) }"
-          }
-        case Lifecycles.OnCreateOptionsMenu =>
-          val lifecycleActions = actions.filter(_.lifecycle === Lifecycles.OnCreateOptionsMenu)
-          lifecycleActions.nonEmpty.option {
-            q"override def onCreateOptionsMenu(menu: android.view.Menu): Boolean = { ..$lifecycleActions; super.onCreateOptionsMenu(menu) }"
-          }
-        case _ =>
-          None
-      }(collection.breakOut)
+      .flatMap(generateDefault)(collection.breakOut)
 
     ModifyLifecycleMethodsResult(defaultLifecycles ++ membersWithModifiedLifecycles)
   }

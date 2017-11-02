@@ -5,8 +5,16 @@ import cats.instances.string._
 import cats.syntax.eq._
 
 object Lifecycles extends Enumeration {
+  // Fragments & Activities
   val OnCreate = Value("onCreate")
   val OnCreateOptionsMenu = Value("onCreateOptionsMenu")
+  val OnStart = Value("onStart")
+  val OnResume = Value("onResume")
+
+  // Fragments
+  val OnAttach = Value("onAttach")
+  val OnActivityCreated = Value("onActivityCreated")
+  val OnViewStateRestored = Value("onViewStateRestored")
 
   def exists(name: String): Boolean = values.exists(_.toString === name)
 
