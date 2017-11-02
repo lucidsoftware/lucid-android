@@ -101,6 +101,21 @@ Values can be composed in a few different ways:
 
 It's important to take care when mixing lifecycles that you only depend on data from lifecycles that are the same as or happen earlier than the current lifecycle. You wouldn't want an `@onCreate` value depending on an `@onStart` value but the other way around is okay.
 
+You can also customize some behavior of `@LifecycleManaged`. It currently supports two options. You can specify a custom implementation of the `Logging` trait with the `loggerTrait` parameter and you can specify the `debug` parameter:
+
+    @LifecycleManaged(
+      loggerTrait = "com.sample.CustomLogging",
+      debug = true
+    )
+
+When `debug` is set to true (default is false), the app will crash when a `LifecycleValue` is accessed before that lifecycle has been hit. It is common to set this value to `BuildConfig.DEBUG`:
+
+    @LifecycleManaged(
+      debug = BuildConfig.DEBUG
+    )
+
+A crash is often much easier to notice in development than an error log but you wouldn't necessarily want the user to experience the crash in cases where it accidentally leaks into production.
+
 ## Usage
 
     // build.sbt
