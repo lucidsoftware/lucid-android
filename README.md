@@ -58,7 +58,7 @@ A common pattern in Android is to create vars that get initialized during a part
 
 The downside here is that if you access `prefs` at the wrong time, you will get a `NullPointerException`. For `onCreate` that might not be so much of an issue, but for other lifecycle methods like `onActivityCreated` (for fragments) or `onResume` you have to be even more careful about when you access the value. You are also introducing mutable data. This is generally discouraged in scala.
 
-The `@LifecycleManaged` annotation helps address this by allowing you to annotate top-level members with the lifecycle method they should be initialized in. A new `LifecycleValue` typed is introduced to help with debugging and provide some guarantees around access lifecycle managed members. The above example becomes:
+The `@com.lucidchart.android.lifecycle.LifecycleManaged` annotation helps address this by allowing you to annotate top-level members with the lifecycle method they should be initialized in. A new `com.lucidchart.android.lifecycle.LifecycleValue` typed is introduced to help with debugging and provide some guarantees around access lifecycle managed members. The above example becomes:
 
     @LifecycleManaged
     class MainActivity extends Activity {
@@ -100,3 +100,11 @@ Values can be composed in a few different ways:
     } yield new HasDependencies(prefs, settings)
 
 It's important to take care when mixing lifecycles that you only depend on data from lifecycles that are the same as or happen earlier than the current lifecycle. You wouldn't want an `@onCreate` value depending on an `@onStart` value but the other way around is okay.
+
+## Usage
+
+    // build.sbt
+    libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.1.0"
+
+    // if you are using @LifecycleManaged
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
