@@ -4,11 +4,12 @@
 
 Lucid Android is designed to consolidate scala helpers for developing Android applications.
 
-Right now there are three features of the library.
+The following features are available:
 
 1. A logging trait
 2. A lifecycle management macro
 3. Android-centric ExecutionContexts
+4. View event handlers
 
 ## Logging
 
@@ -138,6 +139,15 @@ You will need an `ExecutionContext` to do this successfully. Lucid Android provi
     }
 
 Note that `UiThreadExecutionContext` can only be mixed in to an activity that also mixes in `Logging`.
+
+## Event handlers
+
+All `View.setOn*Listener` methods that take an interface with a single method can be called with `View.on*` passing in an anonymous method with the same parameters as the single interface method:
+
+    val button: Button = ???
+    button.onClick { view =>
+      // on click logic here
+    }
 
 ## Usage
 
