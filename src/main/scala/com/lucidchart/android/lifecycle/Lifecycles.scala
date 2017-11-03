@@ -14,6 +14,7 @@ object Lifecycles extends Enumeration {
   // Fragments
   val OnAttach = Value("onAttach")
   val OnActivityCreated = Value("onActivityCreated")
+  val OnCreateView = Value("onCreateView")
   val OnViewStateRestored = Value("onViewStateRestored")
 
   def exists(name: String): Boolean = values.exists(_.toString === name)

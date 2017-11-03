@@ -212,6 +212,8 @@ class LifecycleMacro(val c: Context) {
             LifecycleMetadata(Nil, TypeName("Unit"))
           case Lifecycles.OnAttach =>
             LifecycleMetadata(List(q"context: android.content.Context"), TypeName("Unit"))
+          case Lifecycles.OnCreateView =>
+            LifecycleMetadata(List(q"inflater: android.view.LayoutInflater", q"container: android.view.ViewGroup", q"state: android.os.Bundle"), TypeName("View"))
         }
 
         val term = TermName(lifecycle.toString)
