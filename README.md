@@ -142,7 +142,7 @@ Note that `UiThreadExecutionContext` can only be mixed in to an activity that al
 ## Usage
 
     // build.sbt
-    libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.1.0"
+    libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.2.0"
 
     // if you are using @LifecycleManaged
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
