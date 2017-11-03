@@ -4,10 +4,11 @@
 
 Lucid Android is designed to consolidate scala helpers for developing Android applications.
 
-Right now there are two features of the library.
+Right now there are three features of the library.
 
 1. A logging trait
 2. A lifecycle management macro
+3. Android-centric ExecutionContexts
 
 ## Logging
 
@@ -115,6 +116,28 @@ When `debug` is set to true (default is false), the app will crash when a `Lifec
     )
 
 A crash is often much easier to notice in development than an error log but you wouldn't necessarily want the user to experience the crash in cases where it accidentally leaks into production.
+
+## ExecutionContext
+
+Typically to run something asynchronously in Android it is typical to leverage `AsyncTask`. For simple operations where you don't need fine grained control over reporting progress and want to avoid the boilerplate (and weirdness) around passing data into a call to an `AsyncTask` you probably will have a much better experience using Scala's `Future`.
+
+You will need an `ExecutionContext` to do this successfully. Lucid Android provides two options: `AsyncTaskExecutionContext` and `UiThreadExecutionContext`. `AsyncTaskExecutionContext.ec` will run tasks on the same background thread pool that `AsyncTask` uses. `UiThreadExecutionContext` is a trait that provides an `ExecutionContext` that processes tasks on the main thread. This is useful for switching back to the UI thread when you need to update ui. Only `AsyncTaskExecutionContext.ec` is marked as implicit. This example runs `getUserDataFromNetwork()` on a background thread and then switches to the UI thread in `.onComplete`.
+
+    import com.lucidchart.android.concurrent.UiThreadExeuctionContext
+    import com.lucidchart.android.concurrent.AsyncTaskExecutionContext.ec
+
+    class MainActiivty extends Activity with UiThreadExecutionContext with DefaultLogging {
+      override def onCreate(state: Bundle): Unit = {
+        super.onCreate(state)
+
+        Future(getUserDataFromNetwork()).onComplete {
+          case Success(userData) => updateUi(userData)
+          case Failure(e) => error("something bad happened", e)
+        }(UiThreadExeuctionContext.ec)
+      }
+    }
+
+Note that `UiThreadExecutionContext` can only be mixed in to an activity that also mixes in `Logging`.
 
 ## Usage
 
