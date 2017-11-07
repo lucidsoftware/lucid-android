@@ -24,6 +24,7 @@ scalacOptions ++= Seq("-language:experimental.macros", "-deprecation", "-Xlint",
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 
 libraryDependencies ++= Seq(
+  "io.estatico" %% "newtype" % "0.1.0",
   "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
   "org.typelevel" %% "cats-core" % "1.0.0-MF"
 )
