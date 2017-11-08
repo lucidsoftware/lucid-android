@@ -34,13 +34,13 @@ object JsParameter {
 
   implicit val bool: JsParameter[Boolean] = JsParameter(_.toString)
 
+  implicit val bigInt: JsParameter[BigInt] = JsParameter(_.toString)
+
+  implicit val bigDecimal: JsParameter[BigDecimal] = JsParameter(_.toString)
+
   implicit def iterable[A](implicit paramA: JsParameter[A]): JsParameter[Iterable[A]] = {
     JsParameter { iter =>
-      if (iter.isEmpty) {
-        "[]"
-      } else {
-        iter.map(paramA.asJsString).mkString("[", ",", "]")
-      }
+      iter.map(paramA.asJsString).mkString("[", ",", "]")
     }
   }
 

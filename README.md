@@ -10,6 +10,7 @@ The following features are available:
 2. A lifecycle management macro
 3. Android-centric ExecutionContexts
 4. View event handlers
+5. Javascript execution helpers
 
 ## Logging
 
@@ -149,10 +150,41 @@ All `View.setOn*Listener` methods that take an interface with a single method ca
       // on click logic here
     }
 
+## Javascript Execution Helpers
+
+Under `import com.lucidchart.android.javascript._` a new string interpolater is introduced for safely interpolating scala values into javascript function parameters. Typically if you have a javascript function that takes a string like this:
+
+    function jsFunction(str) { /* ... */ }
+
+When an Android application needs to call this function passing in a Scala string you will end up with something like this:
+
+    val value = "hello"
+    webView.evaluateJavascript(s"""jsFunction("$value")""", null)
+
+You have to manually add the quotes. Because of some weird parsing issues with Scala you are also required to use the triple quoted strings in the example above (escaping the quotes around an interpolated value doesn't work).
+
+Lucid Android adds the `js` interpolater and the `JsParameter` type class to simplify this a little bit and make it safer at compile time. The above `evaluateJavascript` call can be rewritten as follows:
+
+    val value = "hello"
+    webView.evaluateJavascript(js"jsFunction($value)", null)
+
+Because an implicit `JsParameter[String]` is available, the `js` interpolator can translate this call into syntactically valid javascript (adding the quotes in this case). Numbers, booleans, and collections all work correctly as well. You can also provide implict instances of `JsParameter[A]` for custom types you'd like to be able to interpolate. Collections were the original motivation for this:
+
+    val list = List("hello", "world")
+    val jsList = list.map(str => "\"" + str + "\"").mkString("[", ",", "]")
+    webView.evaluateJavascript(s"jsFunction($jsList)", null)
+
+Gets translated into simply:
+
+    val list = List("hello", "world")
+    webView.evaluateJavascript(js"jsFunction($list)", null)
+
+The `js` interpolator returns a `JsInterpolatedString`. At compile time this is a simple wrapper for a (and subclass of) `String`. At runtime, the extra allocation of the wrapper doesn't actually happen so memory allocations are not negatively impacted when using `js`. See [scala-newtype](https://github.com/estatico/scala-newtype) for more details. You do end up with an extra allocation of a `JsParameter` when interpolating collections.
+
 ## Usage
 
     // build.sbt
-    libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.4.0"
+    libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.5.0"
 
     // if you are using @LifecycleManaged
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
