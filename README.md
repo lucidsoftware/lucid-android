@@ -14,7 +14,7 @@ The following features are available:
 
 ## Logging
 
-In Android when you want to log something like an error, you have to provide a tag for the log statement. Lucid Android provides `com.lucidchart.android.logging.DefaultLogging` to simplify this process. It is fairly common to use the current class name when tagging logs. If you extends `DefaultLogging` this is done automatically for you. For example:
+In Android when you want to log something like an error, you have to provide a tag for the log statement. Lucid Android provides `com.lucidchart.android.logging.DefaultLogging` to simplify this process. It is fairly common to use the current class name when tagging logs. If you extend `DefaultLogging` this is done automatically for you. For example:
 
     class MainActivity extends Activity with DefaultLogging {
       override def onCreate(state: Bundle): Unit = {
@@ -88,7 +88,7 @@ Values can be composed in a few different ways:
 
     // import cats.syntax.functor._
     @onCreate
-    val settings: LifecycleValue[CustomSettings] = pref.map(new CustomSettings(_))
+    val settings: LifecycleValue[CustomSettings] = prefs.map(new CustomSettings(_))
 
     // import cats.syntax.apply._
     @onCreate
