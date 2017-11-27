@@ -37,8 +37,22 @@ class LifecycleMacro(val c: Context) {
           }
         """ :: maybeCompanion
 
+      case q"""
+        $mods trait $tpname[..$tparams] extends { ..$earlydefns  } with ..$parents { $self =>
+          ..$members
+        }
+      """ :: maybeCompanion =>
+        val ActionValidationResult(membersWithExpandedActions, actions) = validateActions(members, parameters)
+        val ModifyLifecycleMethodsResult(finalMembers) = modifyLifecycleMethods(membersWithExpandedActions, actions)
+
+        q"""
+          $mods trait $tpname[..$tparams] extends { ..$earlydefns  } with ..$parents { $self =>
+            ..$finalMembers
+          }
+        """ :: maybeCompanion
+
       case unchanged =>
-        c.error(c.enclosingPosition, "@LifecycleManaged must be used on a class")
+        c.error(c.enclosingPosition, "@LifecycleManaged must be used on a class or trait")
         unchanged
     }
 
