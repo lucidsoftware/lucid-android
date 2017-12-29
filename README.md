@@ -84,7 +84,7 @@ Unfortunately, it's sometimes necessary to return the value you want to store in
     @LifecycleManaged
     class ExampleFragment extends Fragment {
       @onCreateView
-      val view = new EmptyLifecycleFragment[View](Lifecycles.OnCreateView, Build.DEBUG) with Logging
+      val view = new EmptyLifecycleValue[View](Lifecycles.OnCreateView, Build.DEBUG) with Logging
 
       override def onCreateView(inflater: LayoutInflater, container: ViewGroup, state: Bundle): View = {
         @initLifecycleValue(view)
