@@ -38,7 +38,7 @@ New methods are introduced to facilitate this feature. The mapping from Android'
 
 `Log.wtf` -> `wtf`
 
-Luicd Android also provides `DefaultUniversalLogging` for instances where you want to use these methods with [value classes and universal traits](https://docs.scala-lang.org/overviews/core/value-classes.html).
+Lucid Android also provides `DefaultUniversalLogging` for instances where you want to use these methods with [value classes and universal traits](https://docs.scala-lang.org/overviews/core/value-classes.html).
 
 You can extend either of these traits to provide custom logging behavior (like sending logs to a server).
 
@@ -78,6 +78,23 @@ Since the type of `prefs` is `LifecycleValue[SharedPreferences]` you have to "un
     }
 
 `LifecycleValue.require` is analogous to `Option.map`. By default, when the value hasn't been initialized an error (with a stacktrace) is logged and the body of the `require` call is skipped.
+
+Unfortunately, it's sometimes necessary to return the value you want to store in a `LifecycleValue` in one of the lifecycle methods. For instance, it's common to store a reference to the views from `onCreateView`. However, accessing a `LifecycleValue`'s wrapped value as a return value in that method would essentially require using `option.get`, an anti-pattern and an inconvenience. Additionally, creating the views in `onCreateView` requires the view inflater and container which are passed in as arguments to the method. A `LifecycleValue` defined externally to that method would have no way to access those arguments. For these instances you can use a different version of the `LifecycleManaged` macro.
+
+    @LifecycleManaged
+    class ExampleFragment extends Fragment {
+      @onCreateView
+      val view = new EmptyLifecycleValue[View](Lifecycles.OnCreateView, Build.DEBUG) with Logging
+
+      override def onCreateView(inflater: LayoutInflater, container: ViewGroup, state: Bundle): View = {
+        @initLifecycleValue(view)
+        val rootView = inflater.inflate(R.id.example_view, container)
+
+        rootView
+      }
+    }
+
+The `initLifecycleValue` annotation allows the `LifecycleValue` to be initialized in the correct context without unnecessarily wrapping and unwrapping the value. Furthermore, the `LifecycleValue` can only be initialized once in its respective method, and it must be initialized. This allows it to be treated in the same manner as `LifecycleValue`s created directly on the class.
 
 When creating a lifecycle value, sometimes you will have to reference other lifecycle values. To facilitate this kind of composition, a `cats.Monad` instance is provided for `LifecycleValue`. Operations like `map` and `flatMap` demonstrate the same behavior as `require` (`map` is identical, in fact) but have the type semantics that you would except from those methods.
 
@@ -184,7 +201,7 @@ The `js` interpolator returns a `JsInterpolatedString`. At compile time this is 
 ## Usage
 
     // build.sbt
-    libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.5.0"
+    libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.7.0"
 
     // if you are using @LifecycleManaged
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)

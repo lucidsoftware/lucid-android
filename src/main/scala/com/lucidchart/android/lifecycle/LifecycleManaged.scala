@@ -1,5 +1,6 @@
 package com.lucidchart.android.lifecycle
 
+import cats.kernel.Eq
 import cats.syntax.eq._
 import com.lucidchart.android.syntax._
 import scala.annotation.{compileTimeOnly, StaticAnnotation}
@@ -28,8 +29,8 @@ class LifecycleMacro(val c: Context) {
           ..$members
         }
       """ :: maybeCompanion =>
-        val ActionValidationResult(membersWithExpandedActions, actions) = validateActions(members, parameters)
-        val ModifyLifecycleMethodsResult(finalMembers) = modifyLifecycleMethods(membersWithExpandedActions, actions)
+        val LifecycleValidationResult(membersWithExpandedActions, initAnnotationActions, lifecycleActions) = validateActions(members, parameters)
+        val ModifyLifecycleMethodsResult(finalMembers) = modifyLifecycleMethods(membersWithExpandedActions, initAnnotationActions, lifecycleActions)
 
         q"""
           $mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns  } with ..$parents { $self =>
@@ -42,8 +43,8 @@ class LifecycleMacro(val c: Context) {
           ..$members
         }
       """ :: maybeCompanion =>
-        val ActionValidationResult(membersWithExpandedActions, actions) = validateActions(members, parameters)
-        val ModifyLifecycleMethodsResult(finalMembers) = modifyLifecycleMethods(membersWithExpandedActions, actions)
+        val LifecycleValidationResult(membersWithExpandedActions, initAnnotationActions, lifecycleActions) = validateActions(members, parameters)
+        val ModifyLifecycleMethodsResult(finalMembers) = modifyLifecycleMethods(membersWithExpandedActions, initAnnotationActions, lifecycleActions)
 
         q"""
           $mods trait $tpname[..$tparams] extends { ..$earlydefns  } with ..$parents { $self =>
@@ -85,52 +86,78 @@ class LifecycleMacro(val c: Context) {
     }
   }
 
-  private def validateActions(members: List[Tree], params: Parameters): ActionValidationResult = {
-    members.foldLeft(ActionValidationResult(Nil, Nil)) {
-      case (result, q"..$mods val $name: $preliminaryReturnType = $body") if hasLifecycleAnnotation(mods.annotations) =>
-        val returnType: Tree = if (preliminaryReturnType.isEmpty) {
-          body match {
-            case q"LifecycleValue[..$tpt]($rest)" =>
-              tq"$lifecyclePackage.LifecycleValue[..$tpt]"
-            case _ =>
-              c.error(
-                preliminaryReturnType.pos,
-                "You must specify the return type as LifecycleValue[T] or use LifecycleValue.apply with a type parameter: LifecycleValue[T] { ... }"
-              )
-              preliminaryReturnType
-          }
-        } else {
-          preliminaryReturnType
+  private def validateActions(members: List[Tree], params: Parameters): LifecycleValidationResult = {
+    members.foldLeft(LifecycleValidationResult(Nil, Nil, Nil)) {
+      case (result, member @ q"..$mods val $name: $preliminaryReturnType = $body") if hasLifecycleAnnotation(mods.annotations) =>
+        val returnType: Tree = getReturnType(preliminaryReturnType, body)
+        returnType match {
+          case tq"EmptyLifecycleValue[..$tparams]" =>
+            val lifecycleReturnType = tq"$lifecyclePackage.LifecycleValue[..$tparams]"
+
+            val (expandedMember, modifiedLifecycleName) =
+              expandMember(member.pos, mods, name.toString, lifecycleReturnType, params)
+
+            result.copy(
+              members = result.members ++ expandedMember,
+              initAnnotationNames = result.initAnnotationNames :+ modifiedLifecycleName
+            )
+          case _ =>
+            val (expandedMember, ModifiedLifecycleName(lifecycle, _, _, newName)) =
+              expandMember(member.pos, mods, name.toString, returnType, params)
+
+            val action = Action(lifecycle, q"$newName = $body")
+
+            result.copy(
+              members = result.members ++ expandedMember,
+              lifecycleActions = result.lifecycleActions :+ action
+            )
         }
-
-        val (expandedMember, action) =
-          expandMember(mods, name.toString, body, returnType, params)
-
-        result.copy(
-          members = result.members ++ expandedMember,
-          actions = result.actions :+ action
-        )
-
       case (result, member) =>
-        if (hasLifecycleAnnotation(member)) {
+        val memberWithoutLifecycleAnnotation = if (hasLifecycleAnnotation(member)) {
           c.error(member.pos, "Lifecycle annotations can only be used on vals")
+          extractLifecycleAnnotationFromMember(member)
+        } else {
+          member
         }
 
-        result.copy(members = result.members :+ member)
+        result.copy(members = result.members :+ memberWithoutLifecycleAnnotation)
+    }
+  }
+
+  private def getReturnType(preliminaryReturnType: Tree, body: Tree): Tree  = {
+    if (preliminaryReturnType.isEmpty) {
+      body match {
+        case q"new EmptyLifecycleValue[..$tpt](...$ignoredParams) with ..$parents" =>
+          tq"EmptyLifecycleValue[..$tpt]"
+        case q"LifecycleValue[..$tpt]($rest)" =>
+          tq"$lifecyclePackage.LifecycleValue[..$tpt]"
+        case _ =>
+          c.error(
+            preliminaryReturnType.pos,
+            "You must specify the return type as LifecycleValue[T] or EmptyLifecycleValue[T] or use LifecycleValue.apply with a type parameter: LifecycleValue[T] or create a new EmptyLifecycleValue"
+          )
+          preliminaryReturnType
+      }
+    } else {
+      preliminaryReturnType
+    }
+  }
+
+  private def getModsFromMember(tree: Tree): Option[Modifiers] = {
+    tree match {
+      case ValDef(mods, _, _, _)       => Some(mods)
+      case ClassDef(mods, _, _, _)     => Some(mods)
+      case TypeDef(mods, _, _, _)      => Some(mods)
+      case DefDef(mods, _, _, _, _, _) => Some(mods)
+      case ModuleDef(mods, _, _)       => Some(mods)
+      case _                           => None
     }
   }
 
   private def hasLifecycleAnnotation(tree: Tree): Boolean = {
-    val annotations = tree match {
-      case ValDef(mods, _, _, _)       => mods.annotations
-      case ClassDef(mods, _, _, _)     => mods.annotations
-      case TypeDef(mods, _, _, _)      => mods.annotations
-      case DefDef(mods, _, _, _, _, _) => mods.annotations
-      case ModuleDef(mods, _, _)       => mods.annotations
-      case _                           => Nil
+    getModsFromMember(tree).exists { mods =>
+      hasLifecycleAnnotation(mods.annotations)
     }
-
-    hasLifecycleAnnotation(annotations)
   }
 
   private def hasLifecycleAnnotation(annotations: List[Tree]): Boolean = {
@@ -146,7 +173,7 @@ class LifecycleMacro(val c: Context) {
     }
   }
 
-  private def expandMember(mods: Modifiers, name: String, body: Tree, returnType: Tree, params: Parameters): (List[Tree], Action) = {
+  private def expandMember(position: Position, mods: Modifiers, name: String, returnType: Tree, params: Parameters): (List[Tree], ModifiedLifecycleName) = {
     val syntheticName = TermName(name + "$" + c.freshName)
     val (cleanedMods, lifecycle) = extractLifecycleAnnotation(mods)
     val varMods =
@@ -169,35 +196,60 @@ class LifecycleMacro(val c: Context) {
       case tq"$outer[..$inner]" => inner.head
     }
 
+    val accessName = TermName(name)
     val expanded =
       List(
         q"$varMods var $syntheticName: $returnType = new $lifecyclePackage.EmptyLifecycleValue[$unwrappedType]($lifecycleInstance, ${params.debug}) with $loggerTrait",
-        q"$defMods def ${TermName(name)}: $returnType = $syntheticName"
+        q"$defMods def $accessName: $returnType = $syntheticName"
       )
 
-    val action = q"$syntheticName = $body"
-
-    (expanded, Action(lifecycle, action))
+    (expanded, ModifiedLifecycleName(lifecycle, position, accessName, syntheticName))
   }
 
-  private def extractLifecycleAnnotation(mods: Modifiers): (Modifiers, Lifecycles.Value) = {
+  private def extractLifecycleAnnotationFromMember(member: Tree): Tree = {
+    val mods = getModsFromMember(member)
+    mods.map { mods =>
+      val (newMods, _) = extractLifecycleAnnotation(mods)
+
+      member match {
+        case ValDef(_, x, y, z)       => ValDef(newMods, x, y, z)
+        case ClassDef(_, x, y, z)     => ClassDef(newMods, x, y, z)
+        case TypeDef(_, x, y, z)      => TypeDef(newMods, x, y, z)
+        case DefDef(_, a, b, c, d, e) => DefDef(newMods, a, b, c, d, e)
+        case ModuleDef(_, a, b)       => ModuleDef(newMods, a, b)
+      }
+    }.getOrElse(member)
+  }
+
+  private def extractLifecycleAnnotation(mods: Modifiers, isAnnotation: (Tree => Boolean)): (Modifiers, Tree) = {
     val Modifiers(flags, privateWithin, annotations) = mods
 
-    val lifecycleTree = annotations
-      .find(isLifecycleAnnotation)
+    val extractAnnotationTree = annotations
+      .find(isAnnotation)
       .getOrElse {
         c.abort(c.enclosingPosition, "Attempted to extract a lifecycle annotation when none was present")
       }
 
-    val newAnnotations = annotations.filterNot(_.equalsStructure(lifecycleTree))
-    val lifecycle = lifecycleTree match {
+    val newAnnotations = annotations.filterNot(_.equalsStructure(extractAnnotationTree))
+
+    (Modifiers(flags, privateWithin, newAnnotations), extractAnnotationTree)
+  }
+
+  private def extractLifecycleAnnotation(mods: Modifiers): (Modifiers, Lifecycles.Value) = {
+    val (newModifiers, annotation) = extractLifecycleAnnotation(mods, isLifecycleAnnotation)
+    val lifecycle = annotation match {
       case q"new $annotationName(...$params)" => Lifecycles.withName(annotationName.toString)
     }
 
-    (Modifiers(flags, privateWithin, newAnnotations), lifecycle)
+    (newModifiers, lifecycle)
   }
 
-  private def modifyLifecycleMethods(members: List[Tree], actions: List[Action]): ModifyLifecycleMethodsResult = {
+  private def modifyLifecycleMethods(members: List[Tree], initAnnotationActions: List[ModifiedLifecycleName], lifecycleActions: List[Action]): ModifyLifecycleMethodsResult = {
+    val modifiedResult = addLifecycleActions(members, lifecycleActions)
+    addLifecycleInitializations(modifiedResult.members, initAnnotationActions)
+  }
+
+  private def addLifecycleActions(members: List[Tree], actions: List[Action]): ModifyLifecycleMethodsResult = {
     val processedLifecycles = mutable.Set.empty[String]
 
     val membersWithModifiedLifecycles = members.map {
@@ -245,6 +297,91 @@ class LifecycleMacro(val c: Context) {
     ModifyLifecycleMethodsResult(defaultLifecycles ++ membersWithModifiedLifecycles)
   }
 
+  private def addLifecycleInitializations(members: List[Tree], names: List[ModifiedLifecycleName]): ModifyLifecycleMethodsResult = {
+    val processedLifecycles = mutable.Set.empty[Lifecycles.Value]
+
+    val modifiedLifecycles = members.map {
+      case q"override def $methodName(..$params): $returnType = { ..$body }"
+          if Lifecycles.exists(methodName.toString) =>
+        val lifecycle = Lifecycles.withName(methodName.toString)
+        processedLifecycles += lifecycle
+        val lifecycleNames = names.filter(_.lifecycle === lifecycle)
+        val updatedBody = body.foldLeft(NameUpdateResult(lifecycleNames, Nil)) { (accumulator, expression) =>
+          expression match {
+            case q"$mods val $tname: $tpt = $expr" =>
+              mods.annotations.find(isInitializationAnnotation).map { initAnnotation =>
+                val initParam = getInitializationAnnotationParameter(initAnnotation)
+                val (modsWithoutInitAnnotation, _) = extractLifecycleAnnotation(mods, isInitializationAnnotation)
+                val updatedVal = q"$modsWithoutInitAnnotation val $tname: $tpt = $expr"
+
+                initParam.flatMap { param =>
+                  accumulator.remainingNames.find(_.currentName.toString == param.toString).map { currentName =>
+                    val macroExpression = q"${currentName.newValueName} = $lifecyclePackage.LifecycleValue($tname)"
+                    accumulator.copy(
+                      remainingNames = accumulator.remainingNames.filterNot(_ === currentName),
+                      updatedExpressions = accumulator.updatedExpressions ++ List(updatedVal, macroExpression)
+                    )
+                  }.orElse {
+                    val lifecycleValueNames = lifecycleNames.map(_.currentName).mkString(",")
+                    c.error(
+                      param.pos,
+                      s"Lifecycle variable name does not match any uninitialized empty lifecycle values for $lifecycle: $lifecycleValueNames"
+                    )
+                    None
+                  }
+
+                }.getOrElse {
+                  accumulator.copy(updatedExpressions = accumulator.updatedExpressions :+ updatedVal)
+                }
+
+              }.getOrElse {
+                accumulator.copy(updatedExpressions = accumulator.updatedExpressions :+ expression)
+              }
+
+            case otherExpression => accumulator.copy(updatedExpressions = accumulator.updatedExpressions :+ expression)
+          }
+        }
+        updatedBody.remainingNames.foreach { name =>
+          c.error(name.position, s"Value was never initialized with @initLifecycleValue in $lifecycle")
+        }
+        q"override def $methodName(..$params): $returnType = { ..${updatedBody.updatedExpressions} }"
+
+      case member => member
+    }
+    names.foreach { name =>
+      if(!processedLifecycles.contains(name.lifecycle)) {
+        c.error(name.position, s"Lifecycle method ${name.lifecycle} was never overridden despite annotated empty lifecycle value: ${name.currentName}")
+      }
+    }
+    ModifyLifecycleMethodsResult(modifiedLifecycles)
+  }
+
+
+  private def isInitializationAnnotation(annotation: Tree): Boolean = {
+    annotation match {
+      case q"new $annotationName(...$params)" =>
+        annotationName.toString == "initLifecycleValue"
+      case _ =>
+        false
+    }
+  }
+
+  private def getInitializationAnnotationParameter(initAnnotation: Tree): Option[Tree] = {
+    val param: Option[Tree] = initAnnotation match {
+      case q"new initLifecycleValue(..$params)" =>
+        if(params.length > 1) {
+          c.error(initAnnotation.pos, "More than 1 variable name specified")
+        }
+        params.headOption
+      case _ => None
+    }
+    param.orElse {
+      c.error(initAnnotation.pos, "Lifecycle variable name not specified")
+      param
+    }
+  }
+
+
   case class Action(
     lifecycle: Lifecycles.Value,
     action: Tree
@@ -254,13 +391,30 @@ class LifecycleMacro(val c: Context) {
     implicit val liftable: Liftable[Action] = Liftable(_.action)
   }
 
-  case class ActionValidationResult(
+  case class ModifiedLifecycleName(
+    lifecycle: Lifecycles.Value,
+    position: Position,
+    currentName: TermName,
+    newValueName: TermName
+  )
+
+  object ModifiedLifecycleName {
+    implicit val eq: Eq[ModifiedLifecycleName] = Eq.fromUniversalEquals[ModifiedLifecycleName]
+  }
+
+  case class LifecycleValidationResult(
     members: List[Tree],
-    actions: List[Action]
+    initAnnotationNames: List[ModifiedLifecycleName],
+    lifecycleActions: List[Action]
   )
 
   case class ModifyLifecycleMethodsResult(
     members: List[Tree]
+  )
+
+  case class NameUpdateResult(
+    remainingNames: List[ModifiedLifecycleName],
+    updatedExpressions: List[Tree]
   )
 
 }

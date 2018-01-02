@@ -26,7 +26,9 @@ addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.fu
 libraryDependencies ++= Seq(
   "io.estatico" %% "newtype" % "0.1.0",
   "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
-  "org.typelevel" %% "cats-core" % "1.0.0-MF"
+  "org.typelevel" %% "cats-core" % "1.0.0-MF",
+  "com.chuusai" %% "shapeless" % "2.3.1" % Test,
+  "org.specs2" %% "specs2-core" % "3.6.4" % Test
 )
 
 minSdkVersion in Android := "21"
