@@ -230,7 +230,7 @@ The `js` interpolator returns a `JsInterpolatedString`. At compile time this is 
 
 ```scala
 // build.sbt
-libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.7.0"
+libraryDependencies += "com.lucidchart" %% "lucid-android" % "0.8.0"
 
 // if you are using @LifecycleManaged
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
