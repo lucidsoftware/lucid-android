@@ -11,10 +11,17 @@ package object javascript {
   implicit class JsParameterStringContext(val stringContext: StringContext) extends AnyVal {
     def js(args: JsParameterValue*): JsInterpolatedString = {
       val parts = stringContext.parts
-      val builder = new StringBuilder()
-      parts.zip(args).foreach { case (part, arg) =>
+      val stringArgs = args.map(_.toString)
+      val partsLength = parts.foldLeft(0) { (combined, current) =>
+        combined + current.length
+      }
+      val argsLength = stringArgs.foldLeft(0) { (combined, current) =>
+        combined + current.length
+      }
+      val builder = new StringBuilder(partsLength + argsLength)
+      parts.zip(stringArgs).foreach { case (part, arg) =>
         builder ++= part
-        builder ++= arg.toString
+        builder ++= arg
       }
       builder ++= parts.last
       JsInterpolatedString(builder.toString)
