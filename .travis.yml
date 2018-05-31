@@ -3,8 +3,9 @@ cache:
     - $HOME/.iv2
     - $HOME/.sbt
 deploy:
-  api_key: $GITHUB_AUTH
-  file: '*/target/**/*.jar'
+  api_key:
+    secure: ScdFlrNrF7JpuRUYNOUWvWEQez3xvFdEMnq/U0V8ibYdy42uPJs2DluCQc3k1YpY4/Dz0mVnuQedAPERcNxrAlyPA5SpxLpK40L2oAontyCam90DkRXuA1QvV/+IJnJ0v53gIN9qn45RxFghhPu76lqk7zv6pdSSTVDJ2hb2iGatq9/PcM7Q5d5Deam6sR/TPoZS129WzCUe+85AAsXK33QYF7JRuiknOQtPqD869v336Yph+gsfI55aP+AMoZN5qG50n1ibzyP+W9kpw1+RRtrjl0gsLq9ngaEf0Rc23KSWr/pmHQ4J2Bh2Iwl7NHW8YZ3NJ+x21z+iMo/VvHkDIzwHeMCOEqUz+lgD34TDUuWEl0sElWAdc1bg1ZjGwr+iuRTpQjnR86o2gBNrEWBH4i4kAsbvo5gKvsAGv0LvY40B37QcVp0VcfBMCFr4Ee4cf7bcXqFgF1TEF465lbySOUHtd8bWivFw0mJ8TMibrJbqFNi02cMisMH7GCSi+uLWMxIXV/9eZsDUw/Gbl2oOz77TMJo9ddK3Uqy5fAMHim6YQNRl0nFHLhRXY5mRVMguJqX+4H/gEdbJYjyhVzyRqKIilYeiOcL03zinCJ2nnDafw8SAdsGS/I3D9nRfNM0COy6qrhPy2y1FE8cyE54yRg2irRpWQ6sRjnBCsWMIr5I=
+  file: "*/target/**/*.jar"
   file_glob: true
   on:
     tags: true
