@@ -17,6 +17,9 @@ object Lifecycles extends Enumeration {
   val OnCreateView = Value("onCreateView")
   val OnViewStateRestored = Value("onViewStateRestored")
 
+  // Dialog Fragment
+  val OnCreateDialog = Value("onCreateDialog")
+
   def exists(name: String): Boolean = values.exists(_.toString === name)
 
   implicit val eq: Eq[Value] = Eq.fromUniversalEquals[Value]
