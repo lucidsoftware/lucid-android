@@ -14,19 +14,29 @@ The following features are available:
 
 ## Logging
 
-In Android when you want to log something like an error, you have to provide a tag for the log statement. Lucid Android provides `com.lucidchart.android.logging.DefaultLogging` to simplify this process. It is fairly common to use the current class name when tagging logs. If you extend `DefaultLogging` this is done automatically for you. For example:
+In Android when you want to log something like an error, you have to provide a tag for the log statement. Lucid Android provides `com.lucidchart.android.logging.DefaultLogTag` to simplify this process. It is fairly common to use the current class name when tagging logs. If you extend `DefaultLogTag`, the class name log tag is automatically generated as an implicit value for you.
+
+This log tag works with the trait, `com.lucidchart.android.logging.Logger` to allow easy logging with dependency injection. For example:
 
 ```scala
-class MainActivity extends Activity with DefaultLogging {
+class Example(logger: Logger) extends DefaultLogTag {
+  logger.debug("a debug statement")
+}
+```
+
+For the default Android mapping of methods, you can use the `com.lucidchart.android.logging.DefaultAndroidLogger` class. To add the logger as a protected val of your class, you can use the trait `com.lucidchart.android.logging.DefaultAndroidLogging`.
+
+```scala
+class MainActivity extends Activity with DefaultAndroidLogging {
   override def onCreate(state: Bundle): Unit = {
-    debug("a simple debug statement")
+    logger.debug("a simple debug statement")
 
     ...
   }
 }
 ```
 
-New methods are introduced to facilitate this feature. The mapping from Android's `Log` methods to `DefaultLogging` is as follows:
+The mapping from Android's `Log` methods to `DefaultAndroidLogger` is as follows:
 
 `Log.d` -> `debug`
 
@@ -40,11 +50,7 @@ New methods are introduced to facilitate this feature. The mapping from Android'
 
 `Log.wtf` -> `wtf`
 
-Lucid Android also provides `DefaultUniversalLogging` for instances where you want to use these methods with [value classes and universal traits](https://docs.scala-lang.org/overviews/core/value-classes.html).
-
-You can extend either of these traits to provide custom logging behavior (like sending logs to a server).
-
-The `Logging` trait is also available if you want to provide custom implementations of all the logging methods.
+You can extend the `Logger` trait or the `DefaultAndroidLogger` class to provide custom logging behavior (like sending logs to a server).
 
 ## Lifecycle Mangement
 
@@ -84,7 +90,7 @@ prefs.require { p =>
 }
 ```
 
-`LifecycleValue.require` is analogous to `Option.map`. By default, when the value hasn't been initialized an error (with a stacktrace) is logged and the body of the `require` call is skipped.
+`LifecycleValue.require` is analogous to `Option.map`. By default, when the value hasn't been initialized an error (with a stacktrace) is logged, using an implicit `com.lucidchart.android.logging.Logger` and `com.lucidchart.android.logging.LogTag`, and the body of the `require` call is skipped.
 
 Unfortunately, it's sometimes necessary to return the value you want to store in a `LifecycleValue` in one of the lifecycle methods. For instance, it's common to store a reference to the views from `onCreateView`. However, accessing a `LifecycleValue`'s wrapped value as a return value in that method would essentially require using `option.get`, an anti-pattern and an inconvenience. Additionally, creating the views in `onCreateView` requires the view inflater and container which are passed in as arguments to the method. A `LifecycleValue` defined externally to that method would have no way to access those arguments. For these instances you can use a different version of the `LifecycleManaged` macro.
 
@@ -132,11 +138,10 @@ val multipleDeps2: LifecycleValue[HasOtherDeps] = for {
 
 It's important to take care when mixing lifecycles that you only depend on data from lifecycles that are the same as or happen earlier than the current lifecycle. You wouldn't want an `@onCreate` value depending on an `@onStart` value but the other way around is okay.
 
-You can also customize some behavior of `@LifecycleManaged`. It currently supports two options. You can specify a custom implementation of the `Logging` trait with the `loggerTrait` parameter and you can specify the `debug` parameter:
+You can also customize some behavior of `@LifecycleManaged`. It currently supports specifying the `debug` parameter:
 
 ```scala
 @LifecycleManaged(
-  loggerTrait = "com.sample.CustomLogging",
   debug = true
 )
 ```

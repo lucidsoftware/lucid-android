@@ -61,7 +61,6 @@ class LifecycleMacro(val c: Context) {
   }
 
   private case class Parameters(
-    loggerTrait: Option[String] = None,
     debug: Tree = q"false"
   )
 
@@ -73,14 +72,6 @@ class LifecycleMacro(val c: Context) {
     }
 
     params.foldLeft(Parameters()) {
-      case (sofar, q"loggerTrait = $traitName") =>
-        traitName match {
-          case Literal(Constant(value: String)) => sofar.copy(loggerTrait = Some(value))
-          case _ =>
-            c.error(traitName.pos, s"Logger trait must be a string literal")
-            sofar
-        }
-
       case (sofar, q"debug = $debugExpr") => sofar.copy(debug = debugExpr)
       case (sofar, _) => sofar
     }
@@ -186,12 +177,6 @@ class LifecycleMacro(val c: Context) {
     val defMods = cleanedMods
     val lifecycleInstance = q"$lifecyclePackage.Lifecycles.withName(${Literal(Constant(lifecycle.toString))})"
 
-    val loggerTrait = params.loggerTrait.map { loggerTrait =>
-      tq"${TypeName(loggerTrait)}"
-    }.getOrElse {
-      tq"com.lucidchart.android.logging.DefaultLogging"
-    }
-
     val unwrappedType = returnType match {
       case tq"$outer[..$inner]" => inner.head
     }
@@ -199,7 +184,7 @@ class LifecycleMacro(val c: Context) {
     val accessName = TermName(name)
     val expanded =
       List(
-        q"$varMods var $syntheticName: $returnType = new $lifecyclePackage.EmptyLifecycleValue[$unwrappedType]($lifecycleInstance, ${params.debug}) with $loggerTrait",
+        q"$varMods var $syntheticName: $returnType = new $lifecyclePackage.EmptyLifecycleValue[$unwrappedType]($lifecycleInstance, ${params.debug})",
         q"$defMods def $accessName: $returnType = $syntheticName"
       )
 

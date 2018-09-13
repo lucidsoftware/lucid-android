@@ -11,8 +11,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle annotated value that isn't initialized" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          @onStart
          val testValue: EmptyLifecycleValue[Boolean] = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
         }
@@ -23,8 +23,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle annotated value that isn't initialized but the method it should be initialized in is overridden" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          @onStart
          val testValue:EmptyLifecycleValue[Boolean] = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
 
@@ -37,8 +37,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for an uninitialized empty lifecycle even when the lifecycle value is not defined directly" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          val x = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
 
          @onStart
@@ -53,8 +53,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle initialization that doesn't specify which lifecycle value should be initialized" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          @onStart
          val testValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
 
@@ -70,8 +70,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle initialization that specifies a non lifecycle value" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          val other = false
 
          @onStart
@@ -89,8 +89,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle initialization that specifies a lifecycle value from a different lifecycle" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          val other = false
 
          @onStart
@@ -111,8 +111,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle initialization that specifies multiple values" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          val other = false
 
          @onStart
@@ -133,8 +133,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle initialization that is initialized multiple times" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          val other = false
 
          @onStart
@@ -155,8 +155,8 @@ class LifecycleManagedSpec extends Specification {
     "Give a compiler error for a lifecycle annotation applied to something other than a val" in {
       illTyped(
         """
-        @LifecycleManaged(true, loggerTrait = "MockLogging")
-        class Test extends LifecycleMethods {
+        @LifecycleManaged(true)
+        class Test extends LifecycleMethods with MockLogging {
          val other = false
 
          @onResume
@@ -168,16 +168,16 @@ class LifecycleManagedSpec extends Specification {
 
 
     "Correctly initialize an empty lifecycle value where annotated" in {
-      @LifecycleManaged(true, loggerTrait = "MockLogging")
-      class Test extends LifecycleMethods {
+      @LifecycleManaged(true)
+      class Test extends LifecycleMethods with MockLogging {
         @onStart
-        val testValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
+        val testValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true)
 
         @onStart
-        val otherValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
+        val otherValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true)
 
         @onResume
-        val viewValue = new EmptyLifecycleValue[Int](Lifecycles.OnResume, true) with MockLogging
+        val viewValue = new EmptyLifecycleValue[Int](Lifecycles.OnResume, true)
 
         override def onStart(): Unit = {
           @initLifecycleValue(testValue)
@@ -210,8 +210,8 @@ class LifecycleManagedSpec extends Specification {
 
 
     "Correctly add bodies of lifecycle value constructors to lifecycle methods" in {
-      @LifecycleManaged(true, loggerTrait = "MockLogging")
-      class Test extends LifecycleMethods {
+      @LifecycleManaged(true)
+      class Test extends LifecycleMethods with MockLogging {
         @onStart
         val testValue = LifecycleValue[Int] {
           1 + 1
