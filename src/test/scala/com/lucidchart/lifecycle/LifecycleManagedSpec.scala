@@ -168,16 +168,16 @@ class LifecycleManagedSpec extends Specification {
 
 
     "Correctly initialize an empty lifecycle value where annotated" in {
-      @LifecycleManaged(true, loggerTrait = "MockLogging")
-      class Test extends LifecycleMethods {
+      @LifecycleManaged(true)
+      class Test extends LifecycleMethods with MockLogging {
         @onStart
-        val testValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
+        val testValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true)
 
         @onStart
-        val otherValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true) with MockLogging
+        val otherValue = new EmptyLifecycleValue[Boolean](Lifecycles.OnStart, true)
 
         @onResume
-        val viewValue = new EmptyLifecycleValue[Int](Lifecycles.OnResume, true) with MockLogging
+        val viewValue = new EmptyLifecycleValue[Int](Lifecycles.OnResume, true)
 
         override def onStart(): Unit = {
           @initLifecycleValue(testValue)
@@ -210,8 +210,8 @@ class LifecycleManagedSpec extends Specification {
 
 
     "Correctly add bodies of lifecycle value constructors to lifecycle methods" in {
-      @LifecycleManaged(true, loggerTrait = "MockLogging")
-      class Test extends LifecycleMethods {
+      @LifecycleManaged(true)
+      class Test extends LifecycleMethods with MockLogging {
         @onStart
         val testValue = LifecycleValue[Int] {
           1 + 1
