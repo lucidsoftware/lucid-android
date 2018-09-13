@@ -2,7 +2,7 @@ package com.lucidchart.android.lifecycle
 
 import cats.Monad
 import com.lucidchart.android._
-import com.lucidchart.android.logging.Logging
+import com.lucidchart.android.logging.{LogTag, Logger}
 import scala.annotation.tailrec
 
 sealed trait LifecycleValue[+A] {
@@ -58,21 +58,14 @@ private class SomeLifecycleValue[A](a: => A) extends LifecycleValue[A] {
   def option: Option[A] = Some(value)
 }
 
-abstract class EmptyLifecycleValue[+A](lifecycle: Lifecycles.Value, debug: Boolean) extends LifecycleValue[A] with Logging { self =>
+class EmptyLifecycleValue[+A](lifecycle: Lifecycles.Value, debug: Boolean)(implicit logger: Logger, logTag: LogTag) extends LifecycleValue[A] { self =>
   private[lifecycle] def emptyMap[B]: LifecycleValue[B] = {
     val err = new LifecycleError(lifecycle)
-    error(s"Attempted to access a lifecycle bound value before $lifecycle ran", err)
+    logger.error(s"Attempted to access a lifecycle bound value before $lifecycle ran", err)
     if (debug) {
       throw err
     } else {
-      new EmptyLifecycleValue[B](lifecycle, debug) {
-        def debug(msg: String, e: Throwable = null): Unit = self.debug(msg, e)
-        def error(msg: String, e: Throwable = null): Unit = self.error(msg, e)
-        def info(msg: String, e: Throwable = null): Unit = self.info(msg, e)
-        def verbose(msg: String, e: Throwable = null): Unit = self.verbose(msg, e)
-        def warn(msg: String, e: Throwable = null): Unit = self.warn(msg, e)
-        def wtf(msg: String, e: Throwable = null): Unit = self.wtf(msg, e)
-      }
+      new EmptyLifecycleValue[B](lifecycle, debug)
     }
   }
 
