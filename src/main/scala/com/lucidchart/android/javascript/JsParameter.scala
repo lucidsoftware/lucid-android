@@ -1,12 +1,14 @@
 package com.lucidchart.android.javascript
 
-trait JsParameterValue
+trait JsParameterValue {
+  def stringRepresentation: StringRepresentation
+}
 
 trait JsParameter[A] { self =>
-  def asJsString(a: A): String
+  def asJsString(a: A): StringRepresentation
 
   def contramap[B](f: B => A): JsParameter[B] = new JsParameter[B] {
-    def asJsString(a: B): String = self.asJsString(f(a))
+    def asJsString(a: B): StringRepresentation = self.asJsString(f(a))
   }
 }
 
@@ -14,7 +16,7 @@ object JsParameter {
 
   def apply[A](f: A => String): JsParameter[A] = {
     new JsParameter[A] {
-      def asJsString(a: A) = f(a)
+      def asJsString(a: A): StringRepresentation = DefaultStringRepresentation(f(a))
     }
   }
 
@@ -46,4 +48,16 @@ object JsParameter {
 
   implicit def array[A](implicit paramA: JsParameter[A]): JsParameter[Array[A]] =
     iterable[A](paramA).contramap(_.toIterable)
+}
+
+trait StringRepresentation {
+  def length: Int
+  def appendToBuilder(stringBuilder: StringBuilder): Unit
+}
+
+case class DefaultStringRepresentation(str: String) extends StringRepresentation {
+  override def length: Int = str.length
+  override def appendToBuilder(stringBuilder: StringBuilder): Unit = {
+    stringBuilder ++= str
+  }
 }
