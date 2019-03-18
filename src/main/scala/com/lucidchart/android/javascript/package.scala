@@ -15,12 +15,12 @@ package object javascript {
         combined + current.length
       }
       val argsLength = args.foldLeft(0) { (combined, current) =>
-        combined + current.toString.length
+        combined + current.stringRepresentation.length
       }
       val builder = new StringBuilder(partsLength + argsLength)
       parts.zip(args).foreach { case (part, arg) =>
         builder ++= part
-        builder ++= arg.toString
+        arg.stringRepresentation.appendToBuilder(builder)
       }
       builder ++= parts.last
       JsInterpolatedString(builder.toString)
@@ -29,7 +29,7 @@ package object javascript {
 
   implicit def toJsParameterValue[A: JsParameter](a: A): JsParameterValue = {
     new JsParameterValue {
-      override val toString: String = implicitly[JsParameter[A]].asJsString(a)
+      val stringRepresentation: StringRepresentation = implicitly[JsParameter[A]].asJsString(a)
     }
   }
 
