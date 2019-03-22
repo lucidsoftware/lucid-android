@@ -5,10 +5,10 @@ trait JsParameterValue {
 }
 
 trait JsParameter[A] { self =>
-  def asJsString(a: A): StringRepresentation
+  def asStringRepresentation(a: A): StringRepresentation
 
   def contramap[B](f: B => A): JsParameter[B] = new JsParameter[B] {
-    def asJsString(a: B): StringRepresentation = self.asJsString(f(a))
+    def asStringRepresentation(a: B): StringRepresentation = self.asStringRepresentation(f(a))
   }
 }
 
@@ -16,7 +16,7 @@ object JsParameter {
 
   def apply[A](f: A => String): JsParameter[A] = {
     new JsParameter[A] {
-      def asJsString(a: A): StringRepresentation = DefaultStringRepresentation(f(a))
+      def asStringRepresentation(a: A): StringRepresentation = DefaultStringRepresentation(f(a))
     }
   }
 
@@ -41,8 +41,10 @@ object JsParameter {
   implicit val bigDecimal: JsParameter[BigDecimal] = JsParameter(_.toString)
 
   implicit def iterable[A](implicit paramA: JsParameter[A]): JsParameter[Iterable[A]] = {
-    JsParameter { iter =>
-      iter.map(paramA.asJsString).mkString("[", ",", "]")
+    new JsParameter[Iterable[A]] {
+      def asStringRepresentation(iter: Iterable[A]): StringRepresentation = {
+        IterableStringRepresentation(iter.map(paramA.asStringRepresentation))
+      }
     }
   }
 
@@ -60,4 +62,27 @@ case class DefaultStringRepresentation(str: String) extends StringRepresentation
   override def appendToBuilder(stringBuilder: StringBuilder): Unit = {
     stringBuilder ++= str
   }
+}
+
+case class IterableStringRepresentation(stringRepresentations: Iterable[StringRepresentation]) extends StringRepresentation {
+  override def length: Int = {
+    if (stringRepresentations.isEmpty) {
+      2
+    } else {
+      stringRepresentations.foldLeft(1) {
+        case (acc, strRep) => acc + 1 + strRep.length
+      }
+    }
+  }
+
+  override def appendToBuilder(stringBuilder: StringBuilder): Unit = {
+    stringBuilder.append("[")
+    stringRepresentations.headOption.foreach(_.appendToBuilder(stringBuilder))
+    stringRepresentations.drop(1).foreach { param =>
+      stringBuilder.append(",")
+      param.appendToBuilder(stringBuilder)
+    }
+    stringBuilder.append("]")
+  }
+
 }
