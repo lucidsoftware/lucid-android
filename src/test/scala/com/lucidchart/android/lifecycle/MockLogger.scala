@@ -1,4 +1,4 @@
-package com.lucidchart.lifecycle
+package com.lucidchart.android.lifecycle
 
 import com.lucidchart.android.logging.{DefaultLogTag, LogTag, Logger}
 
