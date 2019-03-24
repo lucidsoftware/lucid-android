@@ -29,7 +29,7 @@ package object javascript {
 
   implicit def toJsParameterValue[A: JsParameter](a: A): JsParameterValue = {
     new JsParameterValue {
-      val stringRepresentation: StringRepresentation = implicitly[JsParameter[A]].asJsString(a)
+      val stringRepresentation: StringRepresentation = implicitly[JsParameter[A]].asStringRepresentation(a)
     }
   }
 

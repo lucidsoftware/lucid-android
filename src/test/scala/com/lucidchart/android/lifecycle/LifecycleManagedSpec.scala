@@ -1,6 +1,5 @@
-package com.lucidchart.lifecycle
+package com.lucidchart.android.lifecycle
 
-import com.lucidchart.android.lifecycle.{EmptyLifecycleValue, LifecycleManaged, LifecycleValue, Lifecycles}
 import org.specs2.mutable.Specification
 import shapeless.test.illTyped
 

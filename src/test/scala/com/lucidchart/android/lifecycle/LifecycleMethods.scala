@@ -1,4 +1,4 @@
-package com.lucidchart.lifecycle
+package com.lucidchart.android.lifecycle
 
 class LifecycleMethods {
   def onStart(): Unit = {}
