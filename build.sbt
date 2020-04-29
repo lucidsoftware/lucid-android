@@ -19,7 +19,7 @@ inScope(Global)(Seq(
 enablePlugins(AndroidLib)
 
 name := "lucid-android"
-scalaVersion := "2.11.11"
+scalaVersion := "2.11.12"
 scalacOptions ++= Seq("-language:experimental.macros", "-deprecation", "-Xlint", "-feature", "-Xfatal-warnings")
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 
