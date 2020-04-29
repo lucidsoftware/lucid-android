@@ -1,6 +1,6 @@
 # lucid-android
 
-[![Build Status](https://travis-ci.org/lucidsoftware/lucid-android.svg)](https://travis-ci.org/lucidsoftware/lucid-android)
+[![Build Status](https://travis-ci.com/lucidsoftware/lucid-android.svg)](https://travis-ci.com/lucidsoftware/lucid-android)
 
 Lucid Android is designed to consolidate scala helpers for developing Android applications.
 
