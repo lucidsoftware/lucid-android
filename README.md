@@ -1,3 +1,7 @@
+# No longer maintained
+
+Kotlin is now the preferred language for Android development.
+
 # lucid-android
 
 [![Build Status](https://travis-ci.com/lucidsoftware/lucid-android.svg)](https://travis-ci.com/lucidsoftware/lucid-android)
